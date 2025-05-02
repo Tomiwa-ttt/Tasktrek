@@ -1,0 +1,30 @@
+# Go build output
+/app
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go workspace
+pkg/
+bin/
+
+# Dependency directories
+vendor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Environment variables
+.env
+
+# IDE/editor configs
+*.swp
+*.swo
+*.idea/
+.vscode/
