@@ -43,7 +43,7 @@ Tasktrek/
 ├── go.sum
 └── .env               # MongoDB URI (keep secret!)
 
-````
+``
 
 ---
 
