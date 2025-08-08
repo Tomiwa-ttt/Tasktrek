@@ -1,8 +1,3 @@
-Great — here's a clean, professional `README.md` for your **Tasktrek** project. You can copy and paste this into your project root:
-
----
-
-```markdown
 # Tasktrek 🗂️
 
 **Tasktrek** is a simple task management API built with Go and MongoDB. It allows users to create, read, update, and delete tasks — perfect for learning backend development, RESTful API design, and deployment with Render.
@@ -32,7 +27,7 @@ Great — here's a clean, professional `README.md` for your **Tasktrek** project
 
 ## 📁 Folder Structure
 
-```
+
 
 Tasktrek/
 ├── config/
