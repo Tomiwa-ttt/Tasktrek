@@ -1,23 +1,28 @@
-# Use Go 1.24.2 as base image
-FROM golang:1.24.2
-
-# Set working directory inside the container
+# --- Build stage ---
+FROM golang:1.24.3-alpine AS build
 WORKDIR /app
 
-# Copy go.mod and go.sum files first for dependency caching
+# Cache deps
 COPY go.mod go.sum ./
-
-# Download Go modules
 RUN go mod download
 
-# Copy the rest of your source code
+# Copy source
 COPY . .
 
-# Build the Go app
-RUN go build -tags netgo -ldflags '-s -w' -o app
+# Build static linux binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o app
 
-# Expose port (change if your app uses a different port)
+# --- Run stage ---
+FROM gcr.io/distroless/base-debian12
+WORKDIR /app
+
+COPY --from=build /app/app /app/app
+
+# Railway detects port via PORT or EXPOSE
 EXPOSE 8080
+ENV PORT=8080
 
-# Command to run the executable
-CMD ["./app"]
+# Run as non-root
+USER nonroot:nonroot
+
+ENTRYPOINT ["/app/app"]

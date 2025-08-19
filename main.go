@@ -1,18 +1,41 @@
 package main
 
 import (
-	"tasktrek/config"
-	"tasktrek/routes"
+	"fmt"
+	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
+
+	"tasktrek/config"
+	"tasktrek/routes"
 )
 
 func main() {
+	// Connect DB
 	config.ConnectDB()
 
-	router := gin.Default()
-	routes.UserRoutes(router)
-	routes.TaskRoutes(router)
+	// Gin mode
+	if os.Getenv("ENV") == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
-	router.Run(":8080") // Start server on localhost:8080
+	r := gin.New()
+	r.Use(gin.Logger(), gin.Recovery())
+
+	// Routes
+	routes.UserRoutes(r)
+	routes.TaskRoutes(r)
+
+	// PORT (Railway sets PORT)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	addr := fmt.Sprintf(":%s", port)
+	log.Printf("🚀 Listening on %s\n", addr)
+	if err := r.Run(addr); err != nil {
+		log.Fatal(err)
+	}
 }

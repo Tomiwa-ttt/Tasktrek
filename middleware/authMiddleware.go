@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -9,28 +8,29 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var secretKey = []byte("mysecretkey123") // Same key used during token generation
+var secretKey = []byte("mysecretkey123")
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
+		h := c.GetHeader("Authorization")
+		if h == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing"})
 			c.Abort()
 			return
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader {
+		if !strings.HasPrefix(h, "Bearer ") {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Bearer token not provided"})
 			c.Abort()
 			return
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			// Check if signing method is HMAC
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method")
+		tokenString := strings.TrimPrefix(h, "Bearer ")
+
+		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+			// HMAC expected
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrTokenUnverifiable
 			}
 			return secretKey, nil
 		})
@@ -41,19 +41,11 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Extract email from token claims and set it in context
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			if email, ok := claims["email"].(string); ok {
+		// Add email to context if present
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			if email, ok2 := claims["email"].(string); ok2 {
 				c.Set("email", email)
-			} else {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-				c.Abort()
-				return
 			}
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
-			c.Abort()
-			return
 		}
 
 		c.Next()
