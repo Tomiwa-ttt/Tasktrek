@@ -15,7 +15,7 @@ func main() {
 	// Connect DB
 	config.ConnectDB()
 
-	// Gin mode
+	// Set Gin mode depending on environment
 	if os.Getenv("ENV") == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -23,11 +23,11 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 
-	// Routes
+	// Register routes
 	routes.UserRoutes(r)
 	routes.TaskRoutes(r)
 
-	// PORT (Railway sets PORT)
+	// Get port from Railway or default to 8080 locally
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -35,7 +35,9 @@ func main() {
 
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("🚀 Listening on %s\n", addr)
+
+	// Start server
 	if err := r.Run(addr); err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to start server: ", err)
 	}
 }
