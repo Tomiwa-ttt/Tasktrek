@@ -13,23 +13,27 @@ import (
 var DB *mongo.Client
 
 func ConnectDB() *mongo.Client {
-	// In production on Railway, .env won't exist. We rely on real env vars.
+	// Railway provides the Mongo URI in the env var MONGO_URI
+	// Make sure in Railway → Variables, you set MONGO_URI = ${{MongoDB.MONGO_URL}}
 	mongoURI := os.Getenv("MONGO_URI")
 	if mongoURI == "" {
 		log.Fatal("❌ MONGO_URI is empty (set it in Railway → Variables)")
 	}
 
+	// Create client options
 	clientOptions := options.Client().ApplyURI(mongoURI)
 
+	// Connect to MongoDB
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		log.Fatal("❌ MongoDB connection error:", err)
 	}
 
-	// Optionally ping:
-	// if err := client.Ping(context.Background(), nil); err != nil {
-	// 	log.Fatal("❌ MongoDB ping failed:", err)
-	// }
+	// Ping the database to verify connection
+	err = client.Ping(context.TODO(), nil)
+	if err != nil {
+		log.Fatal("❌ MongoDB ping failed:", err)
+	}
 
 	fmt.Println("✅ MongoDB connected successfully")
 	DB = client

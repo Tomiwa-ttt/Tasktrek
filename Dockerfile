@@ -1,28 +1,28 @@
-# --- Build stage ---
-FROM golang:1.24.3-alpine AS build
+# Use official Golang image
+FROM golang:1.22-alpine AS builder
+
 WORKDIR /app
 
-# Cache deps
+# Download dependencies
 COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source
 COPY . .
 
-# Build static linux binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o app
+# Build the binary
+RUN go build -o main .
 
-# --- Run stage ---
-FROM gcr.io/distroless/base-debian12
-WORKDIR /app
+# Run stage
+FROM alpine:latest
 
-COPY --from=build /app/app /app/app
+WORKDIR /root/
 
-# Railway detects port via PORT or EXPOSE
-EXPOSE 8080
+COPY --from=builder /app/main .
+
+# Set PORT env (Railway/Heroku will override automatically)
 ENV PORT=8080
 
-# Run as non-root
-USER nonroot:nonroot
+EXPOSE 8080
 
-ENTRYPOINT ["/app/app"]
+CMD ["./main"]
