@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"net/http"
+	"os"
 	"tasktrek/config"
 	"tasktrek/models"
 	"time"
@@ -78,7 +79,11 @@ func Login(c *gin.Context) {
 		"exp":   time.Now().Add(time.Hour * 24).Unix(), // 24 hours expiry
 	})
 
-	secretKey := []byte("mysecretkey123")
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "defaultsecret"
+	}
+	secretKey := []byte(secret)
 
 	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
@@ -94,7 +99,28 @@ func Login(c *gin.Context) {
 }
 
 func Profile(c *gin.Context) {
+	email, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userCollection := config.DB.Database("tasktrek").Collection("users")
+	var user models.User
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := userCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	user.Password = "" // Don't send password hash back
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Welcome to your profile!",
+		"user":    user,
 	})
 }

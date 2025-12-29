@@ -6,12 +6,18 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 
 	"tasktrek/config"
 	"tasktrek/routes"
 )
 
 func main() {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found or error loading it")
+	}
+
 	// Connect DB
 	config.ConnectDB()
 

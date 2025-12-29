@@ -42,6 +42,34 @@ func CreateTask(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Task created successfully", "task": newTask})
 }
 
+func GetTasks(c *gin.Context) {
+	taskCollection := config.DB.Database("tasktrek").Collection("tasks")
+
+	userEmail, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cursor, err := taskCollection.Find(ctx, bson.M{"userEmail": userEmail})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tasks"})
+		return
+	}
+	defer cursor.Close(ctx)
+
+	var tasks []models.Task
+	if err = cursor.All(ctx, &tasks); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse tasks"})
+		return
+	}
+
+	c.JSON(http.StatusOK, tasks)
+}
+
 func UpdateTask(c *gin.Context) {
 	taskCollection := config.DB.Database("tasktrek").Collection("tasks")
 
@@ -69,15 +97,60 @@ func UpdateTask(c *gin.Context) {
 	}
 	updateData["completed"] = updatedTask.Completed
 
+	// Get email from context to ensure ownership
+	userEmail, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	// Update task
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err = taskCollection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": updateData})
+	result, err := taskCollection.UpdateOne(ctx, bson.M{"_id": objectID, "userEmail": userEmail}, bson.M{"$set": updateData})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})
 		return
 	}
 
+	if result.MatchedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found or unauthorized"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Task updated successfully"})
+}
+
+func DeleteTask(c *gin.Context) {
+	taskCollection := config.DB.Database("tasktrek").Collection("tasks")
+
+	taskID := c.Param("id")
+	objectID, err := primitive.ObjectIDFromHex(taskID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task ID"})
+		return
+	}
+
+	userEmail, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := taskCollection.DeleteOne(ctx, bson.M{"_id": objectID, "userEmail": userEmail})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
+		return
+	}
+
+	if result.DeletedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found or unauthorized"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Task deleted successfully"})
 }

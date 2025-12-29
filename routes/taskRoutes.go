@@ -12,5 +12,7 @@ func TaskRoutes(router *gin.Engine) {
 	taskGroup.Use(middleware.AuthMiddleware()) // Protect routes with JWT
 
 	taskGroup.POST("/", controllers.CreateTask)
-	taskGroup.PATCH("/:id", controllers.UpdateTask) // Add the new route for updating tasks
+	taskGroup.GET("/", controllers.GetTasks)
+	taskGroup.PATCH("/:id", controllers.UpdateTask)
+	taskGroup.DELETE("/:id", controllers.DeleteTask)
 }

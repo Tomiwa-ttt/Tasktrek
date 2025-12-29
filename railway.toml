@@ -1,5 +1,7 @@
 [build]
-builder = "paketobuildpacks/builder:base"
+builder = "nixpacks"
+buildCommand = "go build -o app main.go"
 
-[start]
-cmd = "./app"
+[deploy]
+startCommand = "./app"
+

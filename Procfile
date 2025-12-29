@@ -1,2 +1,2 @@
-web: ./myapp
+web: ./app
 
